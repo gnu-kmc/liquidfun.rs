@@ -1,3 +1,9 @@
+# LiquidFun implemented in Rust(for personal learning)
+
+Learning [Rust][] by transpiling LiquidFun by hand
+
+---
+
 <img src="liquidfun/Box2D/Documentation/Programmers-Guide/html/liquidfun-logo-square-small.png"
 alt="LiquidFun logo" style="float:right;" />
 
@@ -42,3 +48,4 @@ you would leave it in.
   [Box2D]: http://box2d.org
   [Box2D/Documentation/Building/]: http://google.github.io/liquidfun/Building.html
   [Programmer's Guide]: http://google.github.io/liquidfun/Programmers-Guide.html
+  [Rust]: https://www.rust-lang.org/en-US/
