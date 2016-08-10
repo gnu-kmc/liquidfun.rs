@@ -142,11 +142,15 @@ macro_rules! intrusive_list_get_node {
         fn get_list_node(&mut self) -> *mut IntrusiveListNode {
             &mut self.$node_member_name as *mut IntrusiveListNode
         }
+        fn node(&self) -> &IntrusiveListNode {
+            &self.$node_member_name
+        }
     }
 }
 
 trait GetListNode {
     fn get_list_node(&mut self) -> *mut IntrusiveListNode;
+    fn node(&self) -> &IntrusiveListNode;
 }
 
 /// Declares the member function function_name of class to retrieve a pointer
@@ -193,53 +197,60 @@ impl<T> TypedIntrusiveListNode<T> where T: GetListNode {
     }
 
     /// Insert this object after the specified object.
-    pub fn insert_after(&self, obj: *const T) {
-        assert!(obj != std::ptr::null::<T>());
+    pub fn insert_after(&mut self, obj: *mut T) {
+        assert!(obj != std::ptr::null_mut::<T>());
         unsafe{(*self.get_list_node()).insert_after((*obj).get_list_node())};
     }
 
     /// Inseert this object before the specified object.
-    pub fn insert_before(&self, obj: *const T) {
-        assert!(obj != std::ptr::null::<T>());
+    pub fn insert_before(&mut self, obj: *mut T) {
+        assert!(obj != std::ptr::null_mut::<T>());
         unsafe{(*self.get_list_node()).insert_before((*obj).get_list_node())};
     }
 
     /// Get the next object in the list.
     /// Check against get_terminator() before deferencing the object.
-    pub fn get_next(&self) -> *mut T {
-        self.get_instance_from_list_node(unsafe{(*self.get_list_node()).get_next()})
+    pub fn get_next(&mut self) -> *mut T {
+        unsafe{
+            let ref mut a = *self.get_list_node();
+            self.get_instance_from_list_node(a.get_next())
+        }
     }
 
     /// Get the previous object in the list.
     /// Check against get_terminator() before deferencing th object.
-    pub fn get_previous(&self) -> *mut T {
-        self.get_instance_from_list_node(unsafe{(*self.get_list_node()).get_previous()})
+    pub fn get_previous(&mut self) -> *mut T {
+        unsafe{
+            let ref mut a = *self.get_list_node();
+            self.get_instance_from_list_node(a.get_previous())
+        }
     }
 
     /// Get the terminator of the list.
     /// This sould not be dereferenced as it is a pointer to
     /// TypedIntrusiveListNode<T> *not* T.
-    pub fn get_terminator(&self) -> *mut T {
+    pub fn get_terminator(&mut self) -> *mut T {
         self.get_list_node() as *mut T
     }
 
     /// Remove this object from the list it's currently in.
-    pub fn remove(&self) -> *mut T {
-        self.get_instance_from_list_node(self.get_list_node())
+    pub fn remove(&mut self) -> *mut T {
+        let a = self.get_list_node();
+        self.get_instance_from_list_node(a)
     }
 
     /// Determine whether this object is in a list.
-    pub fn in_list(&self) -> bool {
+    pub fn in_list(&mut self) -> bool {
         unsafe{(*self.get_list_node()).in_list()}
     }
 
     /// Determine whether this list is empty.
-    pub fn is_empty(&self) -> bool {
+    pub fn is_empty(&mut self) -> bool {
         unsafe{(*self.get_list_node()).is_empty()}
     }
 
     /// Calculate the length of the list.
-    pub fn get_length(&self) -> u32 {
+    pub fn get_length(&mut self) -> u32 {
         unsafe{(*self.get_list_node()).get_length()}
     }
 
@@ -247,7 +258,7 @@ impl<T> TypedIntrusiveListNode<T> where T: GetListNode {
     pub fn get_instance_from_list_node(&self, node: *mut IntrusiveListNode) -> *mut T {
         assert!(node != std::ptr::null_mut::<IntrusiveListNode>());
         // Calculate the pointer to T from the offset.
-        unsafe{std::mem::transmute_copy::<*const u8, *mut T>(&(node as *const u8 - self.get_node_offset(node)))}
+        unsafe{std::mem::transmute_copy::<i32, *mut T>(&(std::mem::transmute_copy::<*mut IntrusiveListNode, i32>(&node) - self.get_node_offset(node)))}
     }
 
     // Get the offset of node within this class.
@@ -256,8 +267,8 @@ impl<T> TypedIntrusiveListNode<T> where T: GetListNode {
         // Perform some type punning to calculate the offset of node in T.
         // WARNING: This could result in undefined behavior with some C++
         // compilers.
-        let obj: *mut T = node;
-        unsafe{&(*obj).node as *const u8 - obj as *const u8}
+        let obj: *mut T = node as *mut T;
+        unsafe{std::mem::transmute_copy::<*const IntrusiveListNode, i32>(&((*obj).node() as *const IntrusiveListNode)) - std::mem::transmute_copy::<*const T, i32>(&(obj as *const T))}
     }
 }
 
